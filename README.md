@@ -5,10 +5,8 @@
 ## 项目结构
 
 ```
-iptv-static-scan/
-├── cmd/
-│   └── iptv-static-scan/
-│       └── main.go
+iptv-static-scan/  
+│── main.go
 ├── config/
 │   └── config.go
 ├── scanner/

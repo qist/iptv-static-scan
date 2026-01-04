@@ -20,23 +20,23 @@ import (
 func GenerateLimitedIPsFromCIDR(startIP net.IP, ipNet *net.IPNet, limit int) ([]string, bool) {
 	var ips []string
 	count := 0
-	for ip := startIP; ipNet.Contains(ip); incrementIP(ip) {
+	
+	// 确保不超过限制
+	ips = make([]string, 0, limit)
+	
+	for ip := startIP; ipNet.Contains(ip) && count < limit; incrementIP(ip) {
 		if isBadHost(ip.To4()) {
 			continue // 跳过主机部分为 "0" 或 "255" 的 IP
 		}
 		ips = append(ips, ip.String())
 		count++
-		if count >= limit {
-			break
-		}
 	}
 
 	// 如果整个 CIDR 已经处理完毕，则返回 true
-	if !ipNet.Contains(IncrementAndCopyIP(startIP, count)) {
-		return ips, true
-	}
-
-	return ips, false
+	nextIP := IncrementAndCopyIP(startIP, count)
+	completed := !ipNet.Contains(nextIP)
+	
+	return ips, completed
 }
 
 // 增加并复制 IP 地址
