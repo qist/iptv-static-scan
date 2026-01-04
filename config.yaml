@@ -1,0 +1,124 @@
+# 设置要扫描服务端口
+ports:
+  - 80
+  # - 1000-40000
+  # - 30018
+  # - 35455
+  # - 18081
+  # - 81
+  # - 5003
+  # - 80-65535
+  # - 91
+  # - 82
+  # - 8800
+  # - 20110-20112
+  # - 808
+  # - 3000
+  # - 8000
+  # - 8888
+  # - 10503
+
+
+# 设置扫描url
+urlPaths:
+  # - "1.v.smtcdns.net/qctv.fengshows.cn/live/0701pcc72.flv"
+  # - "gdcucc-livod.qn-cdn.gitv.tv/gitv_live/G_CCTV-1-HQ/G_CCTV-1-HQ.m3u8?p=GITV&area=GD_CUCC"
+  # - "1.h2.smtcdns.net/fjnetv51.live.bestvcdn.com.cn/live/program/live/cctv1hd8m/8000000/mnf.m3u8"
+  # - "ywotttv.bj.chinamobile.com/PLTV/88888888/224/3221227026/1.m3u8"
+  # - "dongfang5g-v51-live.bestvcdn.com.cn/live/program/live/cctv1hd8m/8000000/{timeFirst}/{timestampMinus5}.ts"
+  # - "dongfang5g-mobile-v51-live.bestvcdn.com.cn/SB/live/program/live/hxwshd4m/4000000/mnf.m3u8"
+  # - "ott.mobaibox.com/PLTV/3/224/3221225530/index.m3u8"
+  # - "ts-gitv-sd-yh.189smarthome.com/live/program/live/cctv1hd8m/8000000/{timeFirst}/{timestampMinus5}.ts"
+  # - "live/CCTV1hd-8M/live.m3u8"
+  # - "live/emdy4k_8000.m3u8?E=1&U=1&A=1&K=1&P=1&S=1"
+  # - "live2.rxip.sc96655.com/live/emdy4k_8000.m3u8?E=1&U=1&A=1&K=1&P=1&S=1"
+  # - "hwcdntest.hb.chinamobile.com/PLTV/88888888/224/3221226117/index.m3u8"
+  # - "rtp/233.50.201.134:5140"
+  # - "udp/239.77.0.166:5146"
+  # - "gitv_live/G_BINGQIKJ-CQ/G_BINGQIKJ-CQ.m3u8"
+  # - "hls/1/index.m3u8"
+  # - "live/program/live/cctv1hd8m/8000000/{timeFirst}/{timestampMinus5}.ts"
+  # - "qctv.fengshows.cn/live/0701pcc72.m3u8"
+  # - "gitv/live1/-/GITV-YN-7"
+  # - "newpublic.livev52.bestvcdn.com.cn/live/program/live/cctv1hd8m/8000000/{timeFirst}/{timestampMinus5}.ts"
+  - "player-live.html"
+  # - "stream/channelid/2125632155"
+  # - "cctv3.m3u8"
+  # - "hls.p2p.com/live2.rxip.sc96655.com/live/CCTV-1H265_4000.m3u8?E=1&U=1&A=1&K=1&P=1&S=1"
+  # - "hls.p2p.com/39.134.247.50:80/180000001002/00000001000000000007000000001246/main.m3u8?"
+  # - "hls.p2p.com/cdnrrs.gz.chinamobile.com/PLTV/88888888/224/3221225777/1/01.m3u8?fmt=ts2hls"
+  # - "cdnrrs.gz.chinamobile.com/PLTV/88888888/224/3221226268/1/01.m3u8?fmt=ts2hls"
+  # - "hls.p2p.com/cqcu3.live.cbncdn.cn:80/session/93c3fb36-f805-11ef-a86e-5254003e6f6f$h1.0$hls.live.cqccn.com/rx45vo/__cl/cg:live/__c/cctv1HD/__op/default/__f/index.m3u8?token=c20889d23b8d98d8892195a5ef1a0c14_1741075230_1741075230"
+  # - "xjbuv52-zp.live.bestvcdn.com.cn/live/program/live/cctv1hd8m/8000000/mnf.m3u8"
+  # - "hls.p2p.com/39.134.137.62:80/200000001891/460000089100010047/1.m3u8?IASHttpSessionId=RR244520250228082250580776"
+  # - "000000002001/PLTV/88888888/224/3221284618/index.m3u8?HlsProfileId="
+  # - "live/CCTV1HD_6000.m3u8"
+  # - "ysp/2024078203.m3u8"
+  # - "itv/5000000004000012827.m3u8?cdn=bestzb"
+  # - "1301-txt.otvstream.otvcloud.com/otv/skcc/live/channel43067/2300.m3u8"
+  # - "live/GHDdaoshi_7500.m3u8"
+  # - "zycfcdn.gdwlcloud.com/PLTV/88888888/224/3221225490/index.m3u8"
+  # - "1.h2.smtcdns.net/4403-txt.otvstream.otvcloud.com/otv/skcc/live/channel1/index.m3u8"
+  # - "5.v.smtcdns.net/hlslive-tx-cdn.ysp.cctv.cn/ysp/2022576803.m3u8"
+  # - "zhibo.hkstv.tv/livestream/mutfysrq/playlist.m3u8?wsSession=e5b4ef626c5980be2fbdf2e7-158332927312639"
+  # - "live/program/live/cctv1hd8m/8000000/mnf.m3u8"
+  # - "hlslive-tx-cdn.ysp.cctv.cn/ysp/2024078203.m3u8"
+  # - "1.v.smtcdns.net/tx.flv.huya.com/src/1394575534-1394575534-5989656310331736064-2789274524-10057-A-0-1.flv"
+  # - "mgsp-tx.live.miguvideo.com/wd_r2/cctv/cctv1hd/1200/01.m3u8?msisdn=&Channel_ID=&ContentId=&HlsSubType=&HlsProfileId=&encrypt="
+
+
+# 设置不循环端口路径
+non_ports_path:
+ # - "14891/rtp/239.77.0.2:5146"
+ # - "81/gitv_live/G_BINGQIKJ-CQ/G_BINGQIKJ-CQ.m3u8"
+ # - "5003/cctv3.m3u8"
+ # - "5004/cctv4.m3u8"
+ # - "2012/api/post?item=itv_traffic"
+ # - "10457/stream/channelid/940439937"
+ # - "80/live/program/live/cctv1hd8m/8000000/mnf.m3u8"
+ # - "80/newpublic.livev52.bestvcdn.com.cn/live/program/live/cctv1hd8m/8000000/{timeFirst}/{timestampMinus5}.ts"
+ # - "80/mgsp-tx.live.miguvideo.com/wd_r2/cctv/cctv1hd/1200/01.m3u8?msisdn=&Channel_ID=&ContentId=&HlsSubType=&HlsProfileId=&encrypt="
+
+# 设置 线程数
+maxConcurrentRequests: 2000
+
+# 设置输出到文件名
+successfulIPsFile: "successful_zubo.txt"
+
+# 设置 UA
+uaHeaders:
+  User-Agent:
+    - "okhttp/3.8.10"
+    
+# 设置扫描ip地址
+cidrFile: "zubo.txt"
+
+# 设置超时时间秒
+timeOut: 10
+
+# 下载流媒体文件大小单位MB
+downSize: 0.2
+
+# 配置文件缓冲区大小
+FileBufferSize: 200
+
+# 是下载ts文件 还是判断m3u8文件内容 为true 下载ts false 内容判断
+download_ts: false
+
+# 输出到文件格式 true 输出完整url false 输出ip 端口
+outputs: false
+
+# 是否开启日志显示 true 开启 false 关闭
+logEnabled: true
+
+# 是否开启日志显示当前IP true 开启 false 关闭【该设置仅在logEnabled为false时设置有效】
+LogIpEnabled: false
+
+# 是否开启定时触发输出当前时间 true 开启 false 关闭
+LogTimeEnabled: false
+
+# 定时输出触发时间分钟
+LogTime: 10
+
+# 定时触发输出当前时间和地址的路径
+LogTimeFile: "time.txt"

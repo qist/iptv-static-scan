@@ -1,0 +1,11 @@
+bin/
+access.log
+build/
+Makefile
+build.zip
+tools/
+cmd/
+tvgate
+test_start_time
+ffmpeg/
+src/
