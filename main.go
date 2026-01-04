@@ -13,11 +13,19 @@ import (
 	"github.com/qist/iptv-static-scan/output"
 	"github.com/qist/iptv-static-scan/scanner"
 )
-
+var VersionFlag *bool
 func main() {
 	// 使用flag包解析命令行参数
 	configFile := flag.String("config", "config.yaml", "配置文件的路径")
+	VersionFlag = flag.Bool("version", false, "显示版本号")
 	flag.Parse()
+
+	// 如果显示版本号，打印版本号并退出
+	if *VersionFlag {
+		fmt.Println("程序版本:", config.Version)
+		return
+	}
+	
 	start := time.Now() // 记录开始时间
 	fmt.Println("扫描开始: ", time.Now().Format("2006-01-02 15:04:05"))
 
