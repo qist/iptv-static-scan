@@ -1,0 +1,1 @@
+# iptv-static-scan
