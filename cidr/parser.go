@@ -12,7 +12,7 @@ import (
 )
 
 // 解析CIDR文件并添加任务到 worker pool 处理
-func ParseCIDRFile(workerPool *scanner.WorkerPool, cfg *config.Config) error {
+func ParseCIDRFile(workerPool *scanner.WorkerPool, cfg *config.Config, successfulIPsCh chan<- string) error {
 	file, err := os.Open(cfg.CIDRFile)
 	if err != nil {
 		return fmt.Errorf("打开CIDR文件失败: %v", err)
@@ -27,7 +27,7 @@ func ParseCIDRFile(workerPool *scanner.WorkerPool, cfg *config.Config) error {
 		switch isDomain(line) {
 		case 1:
 			// 是域名且能解析，直接处理
-			err := scanner.ProcessCIDR(workerPool, line, cfg)
+			err := scanner.ProcessCIDR(workerPool, line, cfg, successfulIPsCh)
 			if err != nil {
 				log.Printf("处理域名失败: %v\n", err)
 			}
@@ -53,7 +53,7 @@ func ParseCIDRFile(workerPool *scanner.WorkerPool, cfg *config.Config) error {
 					}
 					// 处理每个CIDR
 					for _, cidr := range cidrs {
-						err := scanner.ProcessCIDR(workerPool, cidr, cfg)
+						err := scanner.ProcessCIDR(workerPool, cidr, cfg, successfulIPsCh)
 						if err != nil {
 							log.Printf("处理CIDR失败: %v\n", err)
 						}
@@ -63,7 +63,7 @@ func ParseCIDRFile(workerPool *scanner.WorkerPool, cfg *config.Config) error {
 				}
 			} else {
 				// 如果是CIDR格式，直接处理
-				err := scanner.ProcessCIDR(workerPool, line, cfg)
+				err := scanner.ProcessCIDR(workerPool, line, cfg, successfulIPsCh)
 				if err != nil {
 					log.Printf("处理CIDR失败: %v\n", err)
 				}

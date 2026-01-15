@@ -67,7 +67,7 @@ func main() {
 	workerPool.Start()
 
 	// 解析 CIDR 文件并直接添加任务到 worker pool
-	err = cidr.ParseCIDRFile(workerPool, cfg)
+	err = cidr.ParseCIDRFile(workerPool, cfg, successfulIPsCh)
 	if err != nil {
 		log.Printf("解析CIDR文件失败: %v\n", err)
 		return

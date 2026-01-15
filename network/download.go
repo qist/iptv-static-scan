@@ -14,7 +14,7 @@ import (
 )
 
 // 下载流媒体文件
-func DownloadStream(ip string, port int, urlPath string, cfg *config.Config) {
+func DownloadStream(ip string, port int, urlPath string, cfg *config.Config, successfulIPsCh chan<- string) {
 	var DownSize = int(float64(cfg.DownSize) * 1024 * 1024)
 	url := fmt.Sprintf("http://%s:%d/%s", ip, port, urlPath)
 	log.Printf("开始下载 http://%s:%d/%s\n", ip, port, urlPath)
@@ -86,8 +86,7 @@ func DownloadStream(ip string, port int, urlPath string, cfg *config.Config) {
 		trimmedOutput := strings.TrimSpace(outputString)
 		// 在写入文件之前检查去除空白后的字符串是否为空
 		if trimmedOutput != "" {
-			// 这里需要通过通道发送成功结果，由于下载函数无法直接访问通道，
-			// 我们需要在调用处处理
+			successfulIPsCh <- trimmedOutput
 		}
 	} else {
 		os.Remove(fmt.Sprintf("stream9527_%s_%d_%s", ippath, port, filename))
@@ -96,7 +95,7 @@ func DownloadStream(ip string, port int, urlPath string, cfg *config.Config) {
 	}
 }
 
-func DownloadTS(ip string, port int, urlPath string, cfg *config.Config) {
+func DownloadTS(ip string, port int, urlPath string, cfg *config.Config, successfulIPsCh chan<- string) {
 	url := fmt.Sprintf("http://%s:%d/%s", ip, port, urlPath)
 
 	log.Printf("检查 %s 内容是否包含可下载ts文件\n", url)
@@ -130,7 +129,7 @@ func DownloadTS(ip string, port int, urlPath string, cfg *config.Config) {
 			baseURL := path.Dir(urlPath)
 			tsURLPath := fmt.Sprintf("%s/%s", baseURL, tsFile)
 			tsURLPath = strings.ReplaceAll(tsURLPath, "./", "")
-			DownloadStream(ip, port, tsURLPath, cfg)
+			DownloadStream(ip, port, tsURLPath, cfg, successfulIPsCh)
 		} else {
 			log.Printf("未找到 .ts 文件")
 		}

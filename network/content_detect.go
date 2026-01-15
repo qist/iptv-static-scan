@@ -12,7 +12,7 @@ import (
 )
 
 // 检查MPEGURL内容
-func CheckMPEGURLContent(ip string, port int, urlPath string, cfg *config.Config) {
+func CheckMPEGURLContent(ip string, port int, urlPath string, cfg *config.Config, successfulIPsCh chan<- string) {
 	url := fmt.Sprintf("http://%s:%d/%s", ip, port, urlPath)
 
 	log.Printf("检查 %s 内容是否包含 'EXT-X-VERSION' 或者 'EXT-X-STREAM-INF'\n", url)
@@ -51,7 +51,7 @@ func CheckMPEGURLContent(ip string, port int, urlPath string, cfg *config.Config
 		if (containsVersion && containsStream && !containsSegments) || (containsStream && containsDefaultVhost) || (containsStream && containsHttp) {
 			log.Printf("访问 %s 成功, 包含 'EXT-X-VERSION' 和 'EXT-X-STREAM-INF _defaultVhost_'，不写入文件\n", url)
 		} else if cfg.DownloadTS && !containsStream && !containsMk {
-			DownloadTS(ip, port, urlPath, cfg)
+			DownloadTS(ip, port, urlPath, cfg, successfulIPsCh)
 		} else if (containsVersion && containsExtInf) || containsStream || containsMk || (containsVersion && containsSegments) {
 			log.Printf("访问 %s 成功, 包含 'EXT-X-VERSION' 或 'EXT-X-STREAM-INF' 或 '秒开'\n", url)
 			outputString := ""
@@ -60,8 +60,7 @@ func CheckMPEGURLContent(ip string, port int, urlPath string, cfg *config.Config
 			trimmedOutput := strings.TrimSpace(outputString)
 			// 在写入文件之前检查去除空白后的字符串是否为空
 			if trimmedOutput != "" {
-				// 这里需要通过通道发送成功结果，由于检测函数无法直接访问通道，
-				// 我们需要在调用处处理
+				successfulIPsCh <- trimmedOutput
 			}
 		}
 	} else {
@@ -70,7 +69,7 @@ func CheckMPEGURLContent(ip string, port int, urlPath string, cfg *config.Config
 	}
 }
 
-func MkHTMLContent(ip string, port int, urlPath string, cfg *config.Config) {
+func MkHTMLContent(ip string, port int, urlPath string, cfg *config.Config, successfulIPsCh chan<- string) {
 	url := fmt.Sprintf("http://%s:%d/%s", ip, port, urlPath)
 
 	log.Printf("检查 %s 内容是否包含 'window.PAGE_PREFIX = \"player-\"' 或 'window.PAGE_JS = \"mylive.html.js\"'\n", url)
@@ -115,8 +114,7 @@ func MkHTMLContent(ip string, port int, urlPath string, cfg *config.Config) {
 			trimmedOutput := strings.TrimSpace(outputString)
 			// 在写入文件之前检查去除空白后的字符串是否为空
 			if trimmedOutput != "" {
-				// 这里需要通过通道发送成功结果，由于检测函数无法直接访问通道，
-				// 我们需要在调用处处理
+				successfulIPsCh <- trimmedOutput
 			}
 		} else if containsPagePrefix || containsPageJS || containsReason || containsRet {
 			log.Printf("访问 %s 成功, 包含 'window.PAGE_PREFIX = \"player-\"' 或 'window.PAGE_JS = \"mylive.html.js\"'，不写入文件\n", url)

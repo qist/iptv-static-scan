@@ -65,7 +65,7 @@ func (wp *WorkerPool) Wait() {
 }
 
 // 检查IP和端口是否可访问
-func CheckIPPort(ip string, port int, urlPath string, cfg *config.Config) {
+func CheckIPPort(ip string, port int, urlPath string, cfg *config.Config, successfulIPsCh chan<- string) {
 	url := fmt.Sprintf("http://%s:%d/%s", ip, port, urlPath)
 	client := network.CreateHTTPClient(cfg)    // 复用创建HTTP客户端的代码
 	req, err := network.CreateHTTPRequest(url) // 复用创建HTTP请求的代码
@@ -89,7 +89,7 @@ func CheckIPPort(ip string, port int, urlPath string, cfg *config.Config) {
 
 	if resp.StatusCode == 200 {
 		// 调用 confirmAccess 函数，传递 IP、端口和 URL 路径
-		ConfirmAccess(ip, port, urlPath, cfg)
+		ConfirmAccess(ip, port, urlPath, cfg, successfulIPsCh)
 	} else {
 		log.Printf("访问:%s, 状态码: %d\n", url, resp.StatusCode)
 		return // 状态码不为200时直接返回
@@ -97,7 +97,7 @@ func CheckIPPort(ip string, port int, urlPath string, cfg *config.Config) {
 }
 
 // 确认访问成功后的操作
-func ConfirmAccess(ip string, port int, urlPath string, cfg *config.Config) {
+func ConfirmAccess(ip string, port int, urlPath string, cfg *config.Config, successfulIPsCh chan<- string) {
 	url := fmt.Sprintf("http://%s:%d/%s", ip, port, urlPath)
 	client := network.CreateHTTPClient(cfg)    // 复用创建HTTP客户端的代码
 	req, err := network.CreateHTTPRequest(url) // 复用创建HTTP请求的代码
@@ -120,18 +120,18 @@ func ConfirmAccess(ip string, port int, urlPath string, cfg *config.Config) {
 
 		if serverHeader != "" && strings.Contains(serverHeader, "udpxy") {
 			log.Printf("访问 %s:%d 成功, Server: udpxy\n", ip, port)
-			network.DownloadStream(ip, port, urlPath, cfg)
+			network.DownloadStream(ip, port, urlPath, cfg, successfulIPsCh)
 		}
 
 		if contentHeader != "" {
 			if strings.Contains(contentHeader, "x-flv") || strings.Contains(contentHeader, "video") {
-				network.DownloadStream(ip, port, urlPath, cfg)
+				network.DownloadStream(ip, port, urlPath, cfg, successfulIPsCh)
 			} else if strings.Contains(contentHeader, "mpegurl") {
-				network.CheckMPEGURLContent(ip, port, urlPath, cfg)
+				network.CheckMPEGURLContent(ip, port, urlPath, cfg, successfulIPsCh)
 			} else if strings.Contains(contentHeader, "text") {
-				network.MkHTMLContent(ip, port, urlPath, cfg)
+				network.MkHTMLContent(ip, port, urlPath, cfg, successfulIPsCh)
 			} else if strings.Contains(contentHeader, "application/json") {
-				network.MkHTMLContent(ip, port, urlPath, cfg)
+				network.MkHTMLContent(ip, port, urlPath, cfg, successfulIPsCh)
 			}
 		}
 	} else {
@@ -141,16 +141,16 @@ func ConfirmAccess(ip string, port int, urlPath string, cfg *config.Config) {
 }
 
 // 解析CIDR文件并添加任务到 worker pool 处理
-func AddTaskToPool(wp *WorkerPool, ip string, port int, urlPath string, cfg *config.Config) {
+func AddTaskToPool(wp *WorkerPool, ip string, port int, urlPath string, cfg *config.Config, successfulIPsCh chan<- string) {
 	// 添加任务到工作池
 	wp.AddTask(Task{
 		IP:       ip,
-		Executor: func(ip string) { CheckIPPort(ip, port, urlPath, cfg) },
+		Executor: func(ip string) { CheckIPPort(ip, port, urlPath, cfg, successfulIPsCh) },
 	})
 }
 
 // 处理单个CIDR
-func ProcessCIDR(workerPool *WorkerPool, cidr string, cfg *config.Config) error {
+func ProcessCIDR(workerPool *WorkerPool, cidr string, cfg *config.Config, successfulIPsCh chan<- string) error {
 	// 创建一个带有缓冲区的通道来限制并发的 goroutine 数量
 	sem := make(chan struct{}, cfg.MaxConcurrentRequest)
 
@@ -185,7 +185,7 @@ func ProcessCIDR(workerPool *WorkerPool, cidr string, cfg *config.Config) error 
 						urlPath = strings.Replace(urlPath, "{timeFirst}", timeFirst, -1)
 						urlPath = strings.Replace(urlPath, "{timestampMinus5}", strconv.Itoa(timestampMinus5), -1)
 					}
-					AddTaskToPool(workerPool, cidr, port, urlPath, cfg)
+					AddTaskToPool(workerPool, cidr, port, urlPath, cfg, successfulIPsCh)
 				}(port, urlPath)
 			}
 		}
@@ -228,7 +228,7 @@ func ProcessCIDR(workerPool *WorkerPool, cidr string, cfg *config.Config) error 
 						nonPath = strings.Replace(nonPath, "{timestampMinus5}", strconv.Itoa(timestampMinus5), -1)
 					}
 					// 添加任务到 worker pool
-					AddTaskToPool(workerPool, cidr, nonPort, nonPath, cfg)
+					AddTaskToPool(workerPool, cidr, nonPort, nonPath, cfg, successfulIPsCh)
 				}(nonPortStr, nonPath)
 			} else {
 				log.Printf("无效的非循环端口路径格式: %s", nonPortPath)
@@ -301,7 +301,7 @@ func ProcessCIDR(workerPool *WorkerPool, cidr string, cfg *config.Config) error 
 									urlPath = strings.Replace(urlPath, "{timeFirst}", timeFirst, -1)
 									urlPath = strings.Replace(urlPath, "{timestampMinus5}", strconv.Itoa(timestampMinus5), -1)
 								}
-								AddTaskToPool(workerPool, ip, port, urlPath, cfg)
+								AddTaskToPool(workerPool, ip, port, urlPath, cfg, successfulIPsCh)
 							}
 						}
 					}
@@ -342,7 +342,7 @@ func ProcessCIDR(workerPool *WorkerPool, cidr string, cfg *config.Config) error 
 									nonPath = strings.Replace(nonPath, "{timestampMinus5}", strconv.Itoa(timestampMinus5), -1)
 								}
 								// 添加任务到 worker pool
-								AddTaskToPool(workerPool, ip, nonPort, nonPath, cfg)
+								AddTaskToPool(workerPool, ip, nonPort, nonPath, cfg, successfulIPsCh)
 							}
 						} else {
 							log.Printf("无效的非循环端口路径格式: %s", nonPortPath)

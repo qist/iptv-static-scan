@@ -183,7 +183,7 @@ func ParseCIDR(cidr string) (*net.IPNet, error) {
 }
 
 // 处理单个CIDR
-func processCIDR(workerPool *scanner.WorkerPool, cidr string, cfg *config.Config) error {
+func processCIDR(workerPool *scanner.WorkerPool, cidr string, cfg *config.Config, successfulIPsCh chan<- string) error {
 	// 创建一个带有缓冲区的通道来限制并发的 goroutine 数量
 	sem := make(chan struct{}, cfg.MaxConcurrentRequest)
 
@@ -218,7 +218,7 @@ func processCIDR(workerPool *scanner.WorkerPool, cidr string, cfg *config.Config
 						urlPath = strings.Replace(urlPath, "{timeFirst}", timeFirst, -1)
 						urlPath = strings.Replace(urlPath, "{timestampMinus5}", strconv.Itoa(timestampMinus5), -1)
 					}
-					scanner.AddTaskToPool(workerPool, cidr, port, urlPath, cfg)
+					scanner.AddTaskToPool(workerPool, cidr, port, urlPath, cfg, successfulIPsCh)
 				}(port, urlPath)
 			}
 		}
@@ -261,7 +261,7 @@ func processCIDR(workerPool *scanner.WorkerPool, cidr string, cfg *config.Config
 						nonPath = strings.Replace(nonPath, "{timestampMinus5}", strconv.Itoa(timestampMinus5), -1)
 					}
 					// 添加任务到 worker pool
-					scanner.AddTaskToPool(workerPool, cidr, nonPort, nonPath, cfg)
+					scanner.AddTaskToPool(workerPool, cidr, nonPort, nonPath, cfg, successfulIPsCh)
 				}(nonPortStr, nonPath)
 			} else {
 				log.Printf("无效的非循环端口路径格式: %s", nonPortPath)
@@ -334,7 +334,7 @@ func processCIDR(workerPool *scanner.WorkerPool, cidr string, cfg *config.Config
 									urlPath = strings.Replace(urlPath, "{timeFirst}", timeFirst, -1)
 									urlPath = strings.Replace(urlPath, "{timestampMinus5}", strconv.Itoa(timestampMinus5), -1)
 								}
-								scanner.AddTaskToPool(workerPool, ip, port, urlPath, cfg)
+								scanner.AddTaskToPool(workerPool, ip, port, urlPath, cfg, successfulIPsCh)
 							}
 						}
 					}
@@ -375,7 +375,7 @@ func processCIDR(workerPool *scanner.WorkerPool, cidr string, cfg *config.Config
 									nonPath = strings.Replace(nonPath, "{timestampMinus5}", strconv.Itoa(timestampMinus5), -1)
 								}
 								// 添加任务到 worker pool
-								scanner.AddTaskToPool(workerPool, ip, nonPort, nonPath, cfg)
+								scanner.AddTaskToPool(workerPool, ip, nonPort, nonPath, cfg, successfulIPsCh)
 							}
 						} else {
 							log.Printf("无效的非循环端口路径格式: %s", nonPortPath)
