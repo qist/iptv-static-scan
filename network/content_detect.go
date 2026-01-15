@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/qist/iptv-static-scan/config"
 	"github.com/qist/iptv-static-scan/util"
@@ -25,7 +26,9 @@ func CheckMPEGURLContent(ip string, port int, urlPath string, cfg *config.Config
 	}
 	req.Header = cfg.UAHeaders // 设置请求头
 
+	start := time.Now()
 	resp, err := client.Do(req)
+	duration := time.Since(start)
 	if err != nil {
 		log.Printf("请求 %s 失败: %v\n", url, err)
 		return
@@ -49,13 +52,13 @@ func CheckMPEGURLContent(ip string, port int, urlPath string, cfg *config.Config
 		containsHttp := strings.Contains(m3u8Content, "http://")
 		containsMk := strings.Contains(m3u8Content, `"Ret":20102,"Reason":"`)
 		if (containsVersion && containsStream && !containsSegments) || (containsStream && containsDefaultVhost) || (containsStream && containsHttp) {
-			log.Printf("访问 %s 成功, 包含 'EXT-X-VERSION' 和 'EXT-X-STREAM-INF _defaultVhost_'，不写入文件\n", url)
+			log.Printf("访问 %s 成功, 包含 'EXT-X-VERSION' 和 'EXT-X-STREAM-INF _defaultVhost_'，不写入文件, 耗时: %v\n", url, duration)
 		} else if cfg.DownloadTS && !containsStream && !containsMk {
 			DownloadTS(ip, port, urlPath, cfg, successfulIPsCh)
 		} else if (containsVersion && containsExtInf) || containsStream || containsMk || (containsVersion && containsSegments) {
-			log.Printf("访问 %s 成功, 包含 'EXT-X-VERSION' 或 'EXT-X-STREAM-INF' 或 '秒开'\n", url)
+			log.Printf("访问 %s 成功, 包含 'EXT-X-VERSION' 或 'EXT-X-STREAM-INF' 或 '秒开', 耗时: %v\n", url, duration)
 			outputString := ""
-			outputString = util.GenerateOutputString(ip, port, urlPath, serverHeader, cfg)
+			outputString = util.GenerateOutputString(ip, port, urlPath, serverHeader, cfg, duration, nil)
 			// 去除输出字符串的首尾空白字符
 			trimmedOutput := strings.TrimSpace(outputString)
 			// 在写入文件之前检查去除空白后的字符串是否为空
@@ -64,7 +67,7 @@ func CheckMPEGURLContent(ip string, port int, urlPath string, cfg *config.Config
 			}
 		}
 	} else {
-		log.Printf("请求 %s 失败, 状态码: %d\n", url, resp.StatusCode)
+		log.Printf("请求 %s 失败, 状态码: %d, 耗时: %v\n", url, resp.StatusCode, duration)
 		return // 状态码不为200时直接返回
 	}
 }
@@ -82,7 +85,9 @@ func MkHTMLContent(ip string, port int, urlPath string, cfg *config.Config, succ
 	}
 	req.Header = cfg.UAHeaders // 设置请求头
 
+	start := time.Now()
 	resp, err := client.Do(req)
+	duration := time.Since(start)
 	if err != nil {
 		log.Printf("请求 %s 失败: %v\n", url, err)
 		return
@@ -107,9 +112,9 @@ func MkHTMLContent(ip string, port int, urlPath string, cfg *config.Config, succ
 		// containsJson := strings.Contains(pageContent, `CCTV`)
 		// containscore := strings.Contains(pageContent, `"code":401`)
 		if (containsPagePrefix && containsPageJS) || (containsRet && containsReason) || (containsExtInf && containsVersion) {
-			log.Printf("访问 %s 成功, 包含 'window.PAGE_PREFIX = \"player-\"' 和 'window.PAGE_JS = \"mylive.html.js\"'\n", url)
+			log.Printf("访问 %s 成功, 包含 'window.PAGE_PREFIX = \"player-\"' 和 'window.PAGE_JS = \"mylive.html.js\"', 耗时: %v\n", url, duration)
 			outputString := ""
-			outputString = util.GenerateOutputString(ip, port, urlPath, serverHeader, cfg)
+			outputString = util.GenerateOutputString(ip, port, urlPath, serverHeader, cfg, duration, nil)
 			// 去除输出字符串的首尾空白字符
 			trimmedOutput := strings.TrimSpace(outputString)
 			// 在写入文件之前检查去除空白后的字符串是否为空
@@ -120,7 +125,7 @@ func MkHTMLContent(ip string, port int, urlPath string, cfg *config.Config, succ
 			log.Printf("访问 %s 成功, 包含 'window.PAGE_PREFIX = \"player-\"' 或 'window.PAGE_JS = \"mylive.html.js\"'，不写入文件\n", url)
 		}
 	} else {
-		log.Printf("请求 %s 失败, 状态码: %d\n", url, resp.StatusCode)
+		log.Printf("请求 %s 失败, 状态码: %d, 耗时: %v\n", url, resp.StatusCode, duration)
 		return // 状态码不为200时直接返回
 	}
 }

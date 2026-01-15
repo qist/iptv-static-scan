@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/qist/iptv-static-scan/config"
 	"github.com/qist/iptv-static-scan/util"
@@ -26,6 +27,7 @@ func DownloadStream(ip string, port int, urlPath string, cfg *config.Config, suc
 	}
 	req.Header = cfg.UAHeaders // 设置请求头
 
+	start := time.Now()
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Printf("下载 http://%s:%d/%s 失败: %v\n", ip, port, urlPath, err)
@@ -75,13 +77,14 @@ func DownloadStream(ip string, port int, urlPath string, cfg *config.Config, suc
 			break
 		}
 	}
-
+	duration := time.Since(start)                                 // 下载耗时
+	speed := float64(fileSize) / 1024 / 1024 / duration.Seconds() // MB/s
 	if fileSize >= DownSize {
-		log.Printf("下载完成 http://%s:%d/%s\n", ip, port, urlPath)
+		log.Printf("下载完成 http://%s:%d/%s, 耗时: %v, 速度: %.2f MB/s\n", ip, port, urlPath, duration, speed)
 		os.Remove(fmt.Sprintf("stream9527_%s_%d_%s", ippath, port, filename))
 		log.Printf("删除文件 stream9527_%s_%d_%s\n", ippath, port, filename)
 		outputString := ""
-		outputString = util.GenerateOutputString(ip, port, urlPath, serverHeader, cfg)
+		outputString = util.GenerateOutputString(ip, port, urlPath, serverHeader, cfg, duration, &speed)
 		// 去除输出字符串的首尾空白字符
 		trimmedOutput := strings.TrimSpace(outputString)
 		// 在写入文件之前检查去除空白后的字符串是否为空
