@@ -6,10 +6,10 @@ import (
 	"log"
 	"net"
 	"os"
-	"time"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/qist/iptv-static-scan/config"
 	"github.com/qist/iptv-static-scan/domain"
@@ -43,7 +43,7 @@ func ParseCIDRFile(workerPool *scanner.WorkerPool, cfg *config.Config, successfu
 						wg.Add(1)
 						sem <- struct{}{}
 						go func(port int, urlPath string) {
-							defer wg.Done()	
+							defer wg.Done()
 							defer func() { <-sem }()
 
 							// 获取当前时间戳，并截取前9位
@@ -123,6 +123,9 @@ func ParseCIDRFile(workerPool *scanner.WorkerPool, cfg *config.Config, successfu
 	if err := scannerScanner.Err(); err != nil {
 		return fmt.Errorf("读取CIDR文件失败: %v", err)
 	}
+
+	// 等待所有goroutine完成
+	wg.Wait()
 
 	return nil
 }
