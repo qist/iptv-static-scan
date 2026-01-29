@@ -4,7 +4,9 @@ import (
 	"bufio"
 	"fmt"
 	"log"
+	"net"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/qist/iptv-static-scan/config"
@@ -23,8 +25,30 @@ func ParseCIDRFile(workerPool *scanner.WorkerPool, cfg *config.Config, successfu
 	scannerScanner := bufio.NewScanner(file)
 	for scannerScanner.Scan() {
 		line := scannerScanner.Text()
+		line = strings.TrimSpace(line)
 
-		// 检查是否为域名或IP范围
+		// 检查是否为 ip:port 格式
+		if strings.Contains(line, ":") && !strings.Contains(line, "/") && !strings.Contains(line, "-") {
+			parts := strings.Split(line, ":")
+			if len(parts) == 2 {
+				ip := strings.TrimSpace(parts[0])
+				portStr := strings.TrimSpace(parts[1])
+				
+				// 验证IP格式
+				parsedIP := net.ParseIP(ip)
+				if parsedIP != nil {
+					// 验证端口格式
+					port, err := strconv.Atoi(portStr)
+					if err == nil && port > 0 && port <= 65535 {
+						// 是 ip:port 格式，直接添加任务到 worker pool
+						scanner.AddTaskToPool(workerPool, ip, port, "", cfg, successfulIPsCh)
+						continue
+					}
+				}
+			}
+		}
+
+		// 检查是否为域名
 		switch domain.IsDomain(line) {
 		case 1:
 			// 是域名且能解析，直接处理
