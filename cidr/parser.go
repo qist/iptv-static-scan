@@ -9,6 +9,7 @@ import (
 
 	"github.com/qist/iptv-static-scan/config"
 	"github.com/qist/iptv-static-scan/scanner"
+	"github.com/qist/iptv-static-scan/domain"
 )
 
 // 解析CIDR文件并添加任务到 worker pool 处理
@@ -23,8 +24,8 @@ func ParseCIDRFile(workerPool *scanner.WorkerPool, cfg *config.Config, successfu
 	for scannerScanner.Scan() {
 		line := scannerScanner.Text()
 
-		// 检查是否为域名
-		switch isDomain(line) {
+		// 检查是否为域名或IP范围
+		switch domain.IsDomain(line) {
 		case 1:
 			// 是域名且能解析，直接处理
 			err := scanner.ProcessCIDR(workerPool, line, cfg, successfulIPsCh)
