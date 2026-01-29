@@ -55,7 +55,9 @@ iptv-static-scan/
 git clone https://github.com/your-repo/iptv-static-scan.git
 cd iptv-static-scan
 go mod tidy
-go build ./main.go
+make 
+#清理
+make clean
 ```
 
 ## 配置
