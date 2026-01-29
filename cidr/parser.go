@@ -28,22 +28,15 @@ func ParseCIDRFile(workerPool *scanner.WorkerPool, cfg *config.Config, successfu
 		line = strings.TrimSpace(line)
 
 		// 检查是否为 ip:port 格式
-		if strings.Contains(line, ":") && !strings.Contains(line, "/") && !strings.Contains(line, "-") {
-			parts := strings.Split(line, ":")
-			if len(parts) == 2 {
-				ip := strings.TrimSpace(parts[0])
-				portStr := strings.TrimSpace(parts[1])
-				
-				// 验证IP格式
-				parsedIP := net.ParseIP(ip)
-				if parsedIP != nil {
-					// 验证端口格式
-					port, err := strconv.Atoi(portStr)
-					if err == nil && port > 0 && port <= 65535 {
-						// 是 ip:port 格式，直接添加任务到 worker pool
-						scanner.AddTaskToPool(workerPool, ip, port, "", cfg, successfulIPsCh)
-						continue
-					}
+		if isIPPortFormat(line) {
+			ip, portStr, ok := parseIPPort(line)
+			if ok {
+				// 验证端口格式
+				port, err := strconv.Atoi(portStr)
+				if err == nil && port > 0 && port <= 65535 {
+					// 是 ip:port 格式，直接添加任务到 worker pool
+					scanner.AddTaskToPool(workerPool, ip, port, "", cfg, successfulIPsCh)
+					continue
 				}
 			}
 		}
@@ -101,4 +94,79 @@ func ParseCIDRFile(workerPool *scanner.WorkerPool, cfg *config.Config, successfu
 	}
 
 	return nil
+}
+
+// isIPPortFormat 检查是否为 ip:port 格式，支持 IPv4 和 IPv6
+func isIPPortFormat(line string) bool {
+	if !strings.Contains(line, ":") {
+		return false
+	}
+
+	// 对于 IPv6，格式可能是 [::1]:8080 这样的形式
+	if strings.HasPrefix(line, "[") {
+		// 需要有配对的方括号和端口
+		closeBracketIndex := strings.LastIndex(line, "]")
+		if closeBracketIndex == -1 || closeBracketIndex+2 > len(line) || line[closeBracketIndex+1] != ':' {
+			return false
+		}
+		return true
+	}
+
+	// 对于 IPv4，计算冒号的数量
+	// 如果是 CIDR 格式（如 192.168.1.0/24）或 IP 范围（如 10.0.0.1-10.0.0.254），则不是 ip:port 格式
+	if strings.Contains(line, "/") || strings.Contains(line, "-") {
+		return false
+	}
+
+	// IPv4:port 格式应该只有一个冒号，后面跟端口号
+	parts := strings.Split(line, ":")
+	if len(parts) == 2 {
+		ip := strings.TrimSpace(parts[0])
+		port := strings.TrimSpace(parts[1])
+		
+		// 验证 IP 部分是否是有效的 IP 地址
+		parsedIP := net.ParseIP(ip)
+		if parsedIP != nil {
+			// 验证端口部分是否是有效的端口号
+			portNum, err := strconv.Atoi(port)
+			if err == nil && portNum > 0 && portNum <= 65535 {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+// parseIPPort 解析 ip:port 格式的字符串，返回 IP 和端口
+func parseIPPort(line string) (ip, port string, ok bool) {
+	if strings.HasPrefix(line, "[") {
+		// IPv6 格式 [::1]:port
+		closeBracketIndex := strings.LastIndex(line, "]")
+		if closeBracketIndex == -1 {
+			return "", "", false
+		}
+		ip = line[1:closeBracketIndex] // 去掉方括号
+		if closeBracketIndex+2 <= len(line) && line[closeBracketIndex+1] == ':' {
+			port = line[closeBracketIndex+2:]
+		} else {
+			return "", "", false
+		}
+	} else {
+		// IPv4 格式 ip:port
+		parts := strings.Split(line, ":")
+		if len(parts) != 2 {
+			return "", "", false
+		}
+		ip = strings.TrimSpace(parts[0])
+		port = strings.TrimSpace(parts[1])
+	}
+
+	// 验证 IP 是否有效
+	parsedIP := net.ParseIP(ip)
+	if parsedIP == nil {
+		return "", "", false
+	}
+
+	return ip, port, true
 }
