@@ -6,12 +6,14 @@ import (
 	"log"
 	"net"
 	"os"
+	"time"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/qist/iptv-static-scan/config"
-	"github.com/qist/iptv-static-scan/scanner"
 	"github.com/qist/iptv-static-scan/domain"
+	"github.com/qist/iptv-static-scan/scanner"
 )
 
 // 解析CIDR文件并添加任务到 worker pool 处理
@@ -23,6 +25,8 @@ func ParseCIDRFile(workerPool *scanner.WorkerPool, cfg *config.Config, successfu
 	defer file.Close()
 
 	scannerScanner := bufio.NewScanner(file)
+	sem := make(chan struct{}, cfg.MaxConcurrentRequest)
+	var wg sync.WaitGroup
 	for scannerScanner.Scan() {
 		line := scannerScanner.Text()
 		line = strings.TrimSpace(line)
@@ -35,7 +39,34 @@ func ParseCIDRFile(workerPool *scanner.WorkerPool, cfg *config.Config, successfu
 				port, err := strconv.Atoi(portStr)
 				if err == nil && port > 0 && port <= 65535 {
 					// 是 ip:port 格式，直接添加任务到 worker pool
-					scanner.AddTaskToPool(workerPool, ip, port, "", cfg, successfulIPsCh)
+					for _, urlPath := range cfg.URLPaths {
+						wg.Add(1)
+						sem <- struct{}{}
+						go func(port int, urlPath string) {
+							defer wg.Done()	
+							defer func() { <-sem }()
+
+							// 获取当前时间戳，并截取前9位
+							timestamp := int(time.Now().Unix())
+							timestampStr := fmt.Sprintf("%d", timestamp)[:9]
+							timestampInt, err := strconv.Atoi(timestampStr)
+							if err != nil {
+								log.Fatalf("转换时间戳失败: %v", err)
+							}
+
+							// 将截取的时间戳减去5秒
+							timestampMinus5 := timestampInt - 5
+
+							// 获取当前日期时间，并按照指定格式格式化
+							timeFirst := time.Now().Format("2006010215")
+							// 动态替换 URL 中的变量
+							if strings.Contains(urlPath, "{timeFirst}") || strings.Contains(urlPath, "{timestampMinus5}") {
+								urlPath = strings.Replace(urlPath, "{timeFirst}", timeFirst, -1)
+								urlPath = strings.Replace(urlPath, "{timestampMinus5}", strconv.Itoa(timestampMinus5), -1)
+							}
+							scanner.AddTaskToPool(workerPool, ip, port, urlPath, cfg, successfulIPsCh)
+						}(port, urlPath)
+					}
 					continue
 				}
 			}
@@ -123,7 +154,7 @@ func isIPPortFormat(line string) bool {
 	if len(parts) == 2 {
 		ip := strings.TrimSpace(parts[0])
 		port := strings.TrimSpace(parts[1])
-		
+
 		// 验证 IP 部分是否是有效的 IP 地址
 		parsedIP := net.ParseIP(ip)
 		if parsedIP != nil {
