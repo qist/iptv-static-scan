@@ -172,7 +172,8 @@ func ProcessCIDR(workerPool *WorkerPool, cidr string, cfg *config.Config, succes
 					timestampStr := fmt.Sprintf("%d", timestamp)[:9]
 					timestampInt, err := strconv.Atoi(timestampStr)
 					if err != nil {
-						log.Fatalf("转换时间戳失败: %v", err)
+						log.Printf("转换时间戳失败: %v", err)
+						return
 					}
 
 					// 将截取的时间戳减去5秒
@@ -214,7 +215,8 @@ func ProcessCIDR(workerPool *WorkerPool, cidr string, cfg *config.Config, succes
 					timestampStr := fmt.Sprintf("%d", timestamp)[:9]
 					timestampInt, err := strconv.Atoi(timestampStr)
 					if err != nil {
-						log.Fatalf("转换时间戳失败: %v", err)
+						log.Printf("转换时间戳失败: %v", err)
+						return
 					}
 
 					// 将截取的时间戳减去5秒
@@ -288,7 +290,8 @@ func ProcessCIDR(workerPool *WorkerPool, cidr string, cfg *config.Config, succes
 								timestampStr := fmt.Sprintf("%d", timestamp)[:9]
 								timestampInt, err := strconv.Atoi(timestampStr)
 								if err != nil {
-									log.Fatalf("转换时间戳失败: %v", err)
+									log.Printf("转换时间戳失败: %v", err)
+									return
 								}
 
 								// 将截取的时间戳减去5秒
@@ -328,7 +331,8 @@ func ProcessCIDR(workerPool *WorkerPool, cidr string, cfg *config.Config, succes
 								timestampStr := fmt.Sprintf("%d", timestamp)[:9]
 								timestampInt, err := strconv.Atoi(timestampStr)
 								if err != nil {
-									log.Fatalf("转换时间戳失败: %v", err)
+									log.Printf("转换时间戳失败: %v", err)
+									return
 								}
 
 								// 将截取的时间戳减去5秒

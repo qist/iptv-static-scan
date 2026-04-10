@@ -38,6 +38,7 @@ iptv-static-scan/
 - 支持域名解析扫描
 - 多端口扫描
 - 自定义 URL 路径扫描
+- 支持 `non_ports_path` 非循环端口路径
 - 并发控制，可设置最大并发请求数
 - 检测多种流媒体格式（FLV、MPEG URL、视频等）
 - 支持检测特定服务（如 udpxy）
@@ -46,6 +47,9 @@ iptv-static-scan/
 - 记录扫描结果到文件
 - 支持自定义 User-Agent 头部
 - 支持日志记录功能
+- 内置 Web UI，可在浏览器中创建任务、查看历史和进入详情页
+- Web UI 历史任务与详情页直接读取 `.webui/jobs.json`
+- Web UI 支持删除 `done`、`error`、`interrupted` 状态任务
 
 ## 安装
 
@@ -129,7 +133,53 @@ LogTimeEnabled: true
 ## 使用方法
 
 ```bash
-./main -config config.yaml
+./IPTV-static-scan-linux-amd64 -config config.yaml
+```
+
+## Web UI
+
+启动 Web UI：
+
+```bash
+./IPTV-static-scan-linux-amd64 -web
+./IPTV-static-scan-linux-amd64 -web -addr 0.0.0.0:8080
+```
+
+默认访问地址：
+
+```text
+http://127.0.0.1:8080/
+```
+
+Web UI 新增/调整的行为：
+
+- `outputs` 默认勾选
+- `logEnabled` 默认不勾选
+- 点击“开始扫描”后不自动跳转详情页，任务会在首页后台启动
+- 首页历史任务列表直接读取 `.webui/jobs.json`
+- 任务详情页优先直接读取 `.webui/jobs.json`
+- 服务重启后，原本 `running` / `queued` 的任务会标记为 `interrupted`
+- `interrupted` 状态任务支持直接删除
+
+### Web UI 表单示例
+
+`非循环端口路径（non_ports_path）` 输入框每行填写一个 `端口/路径`，示例：
+
+```text
+14891/rtp/239.77.0.2:5146
+81/gitv_live/G_BINGQIKJ-CQ/G_BINGQIKJ-CQ.m3u8
+5003/cctv3.m3u8
+80/live/program/live/cctv1hd8m/8000000/mnf.m3u8
+```
+
+对应 `config.yaml` 中的配置形式：
+
+```yaml
+non_ports_path:
+  - "14891/rtp/239.77.0.2:5146"
+  - "81/gitv_live/G_BINGQIKJ-CQ/G_BINGQIKJ-CQ.m3u8"
+  - "5003/cctv3.m3u8"
+  - "80/live/program/live/cctv1hd8m/8000000/mnf.m3u8"
 ```
 
 ## 配置说明

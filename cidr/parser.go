@@ -3,6 +3,7 @@ package cidr
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"os"
@@ -16,7 +17,6 @@ import (
 	"github.com/qist/iptv-static-scan/scanner"
 )
 
-// 解析CIDR文件并添加任务到 worker pool 处理
 func ParseCIDRFile(workerPool *scanner.WorkerPool, cfg *config.Config, successfulIPsCh chan<- string) error {
 	file, err := os.Open(cfg.CIDRFile)
 	if err != nil {
@@ -24,7 +24,11 @@ func ParseCIDRFile(workerPool *scanner.WorkerPool, cfg *config.Config, successfu
 	}
 	defer file.Close()
 
-	scannerScanner := bufio.NewScanner(file)
+	return ParseCIDRReader(workerPool, cfg, file, successfulIPsCh)
+}
+
+func ParseCIDRReader(workerPool *scanner.WorkerPool, cfg *config.Config, r io.Reader, successfulIPsCh chan<- string) error {
+	scannerScanner := bufio.NewScanner(r)
 	sem := make(chan struct{}, cfg.MaxConcurrentRequest)
 	var wg sync.WaitGroup
 	for scannerScanner.Scan() {
@@ -51,7 +55,8 @@ func ParseCIDRFile(workerPool *scanner.WorkerPool, cfg *config.Config, successfu
 							timestampStr := fmt.Sprintf("%d", timestamp)[:9]
 							timestampInt, err := strconv.Atoi(timestampStr)
 							if err != nil {
-								log.Fatalf("转换时间戳失败: %v", err)
+								log.Printf("转换时间戳失败: %v", err)
+								return
 							}
 
 							// 将截取的时间戳减去5秒
