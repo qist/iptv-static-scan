@@ -18,25 +18,26 @@ import (
 var VersionFlag *bool
 
 func main() {
-	configFile := flag.String("config", "config.yaml", "配置文件的路径")
-	webMode := flag.Bool("web", false, "启动 Web UI（不读取 YAML）")
-	webAddr := flag.String("addr", "127.0.0.1:8080", "Web 服务监听地址（仅 -web）")
+	configFile := flag.String("config", "", "配置文件路径（指定后进入命令行扫描模式）")
+	webMode := flag.Bool("web", false, "启动 Web UI（默认模式，保留兼容）")
+	webAddr := flag.String("addr", "0.0.0.0:8080", "Web UI 监听地址")
 	VersionFlag = flag.Bool("version", false, "显示版本号")
 	flag.Parse()
+	_ = webMode
 
 	if *VersionFlag {
 		fmt.Println("程序版本:", config.Version)
 		return
 	}
 
-	if *webMode {
-		if err := webui.Start(*webAddr); err != nil {
+	if *configFile != "" {
+		if err := runCLIScan(*configFile); err != nil {
 			log.Fatal(err)
 		}
 		return
 	}
 
-	if err := runCLIScan(*configFile); err != nil {
+	if err := webui.Start(*webAddr); err != nil {
 		log.Fatal(err)
 	}
 }
