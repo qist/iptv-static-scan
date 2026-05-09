@@ -3,6 +3,7 @@ package scanner
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"strconv"
@@ -64,11 +65,11 @@ func (wp *WorkerPool) Wait() {
 	wp.wg.Wait()
 }
 
-// 检查IP和端口是否可访问
+// CheckIPPort 检查IP和端口是否可访问，单次请求完成检测
 func CheckIPPort(ip string, port int, urlPath string, cfg *config.Config, successfulIPsCh chan<- string) {
 	url := fmt.Sprintf("http://%s:%d/%s", ip, port, urlPath)
-	client := network.CreateHTTPClient(cfg)    // 复用创建HTTP客户端的代码
-	req, err := network.CreateHTTPRequest(url) // 复用创建HTTP请求的代码
+	client := network.GetHTTPClient(cfg)
+	req, err := network.CreateHTTPRequest(url)
 	if err != nil {
 		log.Printf("创建请求失败: %v\n", err)
 		return
@@ -78,7 +79,6 @@ func CheckIPPort(ip string, port int, urlPath string, cfg *config.Config, succes
 	resp, err := client.Do(req)
 	if err != nil {
 		if strings.Contains(err.Error(), "redirected to HTTPS") {
-			// 已经在CheckRedirect中处理日志记录
 			log.Printf("ip: %s 已按指示断开HTTPS重定向的连接: %v\n", ip, err)
 		} else {
 			log.Printf("请求失败: %v\n", err)
@@ -87,56 +87,45 @@ func CheckIPPort(ip string, port int, urlPath string, cfg *config.Config, succes
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode == 200 {
-		// 调用 confirmAccess 函数，传递 IP、端口和 URL 路径
-		ConfirmAccess(ip, port, urlPath, cfg, successfulIPsCh)
-	} else {
+	if resp.StatusCode != 200 {
 		log.Printf("访问:%s, 状态码: %d\n", url, resp.StatusCode)
-		return // 状态码不为200时直接返回
-	}
-}
-
-// 确认访问成功后的操作
-func ConfirmAccess(ip string, port int, urlPath string, cfg *config.Config, successfulIPsCh chan<- string) {
-	url := fmt.Sprintf("http://%s:%d/%s", ip, port, urlPath)
-	client := network.CreateHTTPClient(cfg)    // 复用创建HTTP客户端的代码
-	req, err := network.CreateHTTPRequest(url) // 复用创建HTTP请求的代码
-	if err != nil {
-		log.Printf("创建请求失败: %v\n", err)
 		return
 	}
-	req.Header = cfg.UAHeaders
 
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Printf("发送请求失败: %v\n", err)
+	// 一次请求完成内容检测，不再发第二次请求
+	contentHeader := resp.Header.Get("Content-Type")
+	serverHeader := resp.Header.Get("Server")
+	var duration time.Duration // CheckIPPort 不测量首次请求耗时
+
+	if serverHeader != "" && strings.Contains(serverHeader, "udpxy") {
+		log.Printf("访问 %s:%d 成功, Server: udpxy\n", ip, port)
+		network.DownloadStream(ip, port, urlPath, cfg, successfulIPsCh)
 		return
 	}
-	defer resp.Body.Close()
 
-	if resp.StatusCode == 200 {
-		contentHeader := resp.Header.Get("Content-Type")
-		serverHeader := resp.Header.Get("Server")
+	if contentHeader == "" {
+		return
+	}
 
-		if serverHeader != "" && strings.Contains(serverHeader, "udpxy") {
-			log.Printf("访问 %s:%d 成功, Server: udpxy\n", ip, port)
-			network.DownloadStream(ip, port, urlPath, cfg, successfulIPsCh)
+	switch {
+	case strings.Contains(contentHeader, "x-flv") || strings.Contains(contentHeader, "video"):
+		network.DownloadStream(ip, port, urlPath, cfg, successfulIPsCh)
+	case strings.Contains(contentHeader, "mpegurl"):
+		// 读取 body 传入，避免重复请求
+		body, err := io.ReadAll(io.LimitReader(resp.Body, 2*1024*1024))
+		if err != nil {
+			log.Printf("读取响应体失败: %v\n", err)
+			return
 		}
-
-		if contentHeader != "" {
-			if strings.Contains(contentHeader, "x-flv") || strings.Contains(contentHeader, "video") {
-				network.DownloadStream(ip, port, urlPath, cfg, successfulIPsCh)
-			} else if strings.Contains(contentHeader, "mpegurl") {
-				network.CheckMPEGURLContent(ip, port, urlPath, cfg, successfulIPsCh)
-			} else if strings.Contains(contentHeader, "text") {
-				network.MkHTMLContent(ip, port, urlPath, cfg, successfulIPsCh)
-			} else if strings.Contains(contentHeader, "application/json") {
-				network.MkHTMLContent(ip, port, urlPath, cfg, successfulIPsCh)
-			}
+		network.CheckMPEGURLBody(ip, port, urlPath, serverHeader, body, cfg, successfulIPsCh, duration)
+	case strings.Contains(contentHeader, "text"), strings.Contains(contentHeader, "application/json"):
+		// 读取 body 传入，避免重复请求
+		body, err := io.ReadAll(io.LimitReader(resp.Body, 2*1024*1024))
+		if err != nil {
+			log.Printf("读取响应体失败: %v\n", err)
+			return
 		}
-	} else {
-		log.Printf("请求 %s 失败, 状态码: %d\n", url, resp.StatusCode)
-		return // 状态码不为200时直接返回
+		network.MkHTMLBody(ip, port, urlPath, serverHeader, body, cfg, successfulIPsCh, duration)
 	}
 }
 

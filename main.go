@@ -10,6 +10,7 @@ import (
 
 	"github.com/qist/iptv-static-scan/cidr"
 	"github.com/qist/iptv-static-scan/config"
+	"github.com/qist/iptv-static-scan/network"
 	"github.com/qist/iptv-static-scan/output"
 	"github.com/qist/iptv-static-scan/scanner"
 	"github.com/qist/iptv-static-scan/webui"
@@ -51,6 +52,10 @@ func runCLIScan(configFile string) error {
 		return fmt.Errorf("加载配置文件失败: %w", err)
 	}
 
+	// 初始化全局 HTTP 客户端（复用连接池）
+	network.InitHTTPClient(cfg)
+	defer network.CloseIdleConnections()
+
 	if !cfg.LogEnabled {
 		log.SetOutput(io.Discard)
 	}
@@ -60,15 +65,22 @@ func runCLIScan(configFile string) error {
 	}
 
 	successfulIPsCh := make(chan string, cfg.FileBufferSize)
+	bw, err := output.NewBufferedWriter(cfg.SuccessfulIPsFile)
+	if err != nil {
+		return fmt.Errorf("创建缓冲写入器失败: %w", err)
+	}
+
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		for successfulIP := range successfulIPsCh {
-			if err := output.AppendToFile(cfg.SuccessfulIPsFile, successfulIP); err != nil {
+			if err := bw.Write(successfulIP); err != nil {
 				log.Printf("写入成功的IP到文件失败: %v\n", err)
 			}
 		}
+		bw.Flush()
+		bw.Close()
 	}()
 
 	bufferSize := cfg.MaxConcurrentRequest * 1024

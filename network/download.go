@@ -19,13 +19,13 @@ func DownloadStream(ip string, port int, urlPath string, cfg *config.Config, suc
 	var DownSize = int(float64(cfg.DownSize) * 1024 * 1024)
 	url := fmt.Sprintf("http://%s:%d/%s", ip, port, urlPath)
 	log.Printf("开始下载 http://%s:%d/%s\n", ip, port, urlPath)
-	client := CreateHTTPClient(cfg)    // 复用创建HTTP客户端的代码
-	req, err := CreateHTTPRequest(url) // 复用创建HTTP请求的代码
+	client := GetHTTPClient(cfg)
+	req, err := CreateHTTPRequest(url)
 	if err != nil {
 		log.Printf("创建请求失败: %v\n", err)
 		return
 	}
-	req.Header = cfg.UAHeaders // 设置请求头
+	req.Header = cfg.UAHeaders
 
 	start := time.Now()
 	resp, err := client.Do(req)
@@ -54,8 +54,9 @@ func DownloadStream(ip string, port int, urlPath string, cfg *config.Config, suc
 	}
 	defer file.Close()
 
+	// buffer 在循环外分配，复用整个下载过程
+	chunk := make([]byte, DownSize)
 	for {
-		chunk := make([]byte, DownSize)
 		n, err := resp.Body.Read(chunk)
 		if err != nil && err != io.EOF {
 			log.Printf("读取响应体失败: %v\n", err)
@@ -77,17 +78,14 @@ func DownloadStream(ip string, port int, urlPath string, cfg *config.Config, suc
 			break
 		}
 	}
-	duration := time.Since(start)                                 // 下载耗时
-	speed := float64(fileSize) / 1024 / 1024 / duration.Seconds() // MB/s
+	duration := time.Since(start)
+	speed := float64(fileSize) / 1024 / 1024 / duration.Seconds()
 	if fileSize >= DownSize {
 		log.Printf("下载完成 http://%s:%d/%s, 耗时: %v, 速度: %.2f MB/s\n", ip, port, urlPath, duration, speed)
 		os.Remove(fmt.Sprintf("stream9527_%s_%d_%s", ippath, port, filename))
 		log.Printf("删除文件 stream9527_%s_%d_%s\n", ippath, port, filename)
-		outputString := ""
-		outputString = util.GenerateOutputString(ip, port, urlPath, serverHeader, cfg, duration, &speed)
-		// 去除输出字符串的首尾空白字符
+		outputString := util.GenerateOutputString(ip, port, urlPath, serverHeader, cfg, duration, &speed)
 		trimmedOutput := strings.TrimSpace(outputString)
-		// 在写入文件之前检查去除空白后的字符串是否为空
 		if trimmedOutput != "" {
 			successfulIPsCh <- trimmedOutput
 		}
@@ -103,8 +101,8 @@ func DownloadTS(ip string, port int, urlPath string, cfg *config.Config, success
 
 	log.Printf("检查 %s 内容是否包含可下载ts文件\n", url)
 
-	client := CreateHTTPClient(cfg)    // 复用创建HTTP客户端的代码
-	req, err := CreateHTTPRequest(url) // 复用创建HTTP请求的代码
+	client := GetHTTPClient(cfg)
+	req, err := CreateHTTPRequest(url)
 	if err != nil {
 		log.Printf("创建请求失败: %v\n", err)
 		return
@@ -119,7 +117,7 @@ func DownloadTS(ip string, port int, urlPath string, cfg *config.Config, success
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusOK {
-		body, err := io.ReadAll(resp.Body)
+		body, err := io.ReadAll(io.LimitReader(resp.Body, maxBodySize))
 		if err != nil {
 			log.Printf("读取 %s 响应体失败: %v\n", url, err)
 			return
